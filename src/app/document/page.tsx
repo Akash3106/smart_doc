@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { sendChatMessage, addMessage, setDocumentContent, ChatMessage } from "@/store/slices/chatSlice";
-
+import { useRouter } from "next/navigation";
 interface DocumentData {
   fileName?: string;
   title?: string;
@@ -14,6 +14,7 @@ interface DocumentData {
 }
 
 export default function DocumentPage() {
+  const router = useRouter();
   const [documentData, setDocumentData] = useState<DocumentData>({});
   const [documentName, setDocumentName] = useState("Document");
   const [documentType, setDocumentType] = useState<"file" | "url">("file");
@@ -37,6 +38,12 @@ export default function DocumentPage() {
 
   useEffect(() => {
     // Use Redux state for processed document data
+    if(processedDocument===null && scrapedData===null){
+        console.log("no data")
+        router.push("/");
+        return;
+
+    }
     if (activeTab === "file") {
       setDocumentData(processedDocument?.content);
       const name = processedDocument.fileName || processedDocument.metadata?.title || "Uploaded Document";

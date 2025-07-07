@@ -14,12 +14,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate URL format
-    let parsedUrl;
     try {
-      parsedUrl = new URL(url);
+      new URL(url);
     } catch (error) {
       return NextResponse.json(
-        { error: 'Invalid URL format' },
+        { error: `Invalid URL format ${error}`},
         { status: 400 }
       );
     }
@@ -63,11 +62,12 @@ export async function POST(request: NextRequest) {
       '.blog-content'
     ];
 
+    // Find the best content element
     let contentElement = $('body'); // Default fallback
     for (const selector of contentSelectors) {
       const element = $(selector);
       if (element.length > 0) {
-        contentElement = element as any;
+        contentElement = element;
         break;
       }
     }

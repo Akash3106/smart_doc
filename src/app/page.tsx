@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setActiveTab, addNotification } from "@/store/slices/uiSlice";
 import { setCurrentFile, processDocument, clearError } from "@/store/slices/documentSlice";
-import { setCurrentUrl, scrapeUrl, clearScrapedData } from "@/store/slices/scrapingSlice";
+import { setCurrentUrl, scrapeUrl } from "@/store/slices/scrapingSlice";
 import Notification from "@/components/Notification";
 
 export default function Home() {
@@ -15,8 +15,8 @@ export default function Home() {
   // Redux hooks
   const dispatch = useAppDispatch();
   const { activeTab } = useAppSelector((state: any) => state.ui);
-  const { currentFile, isProcessing: isProcessingFile, error: fileError, processedDocument } = useAppSelector((state: any) => state.document);
-  const { currentUrl, isScraping, error: scrapingError, scrapedData } = useAppSelector((state: any) => state.scraping);
+  const { currentFile, isProcessing: isProcessingFile, error: fileError } = useAppSelector((state: any) => state.document);
+  const { currentUrl, isScraping, error: scrapingError } = useAppSelector((state: any) => state.scraping);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 
 export async function POST(request: NextRequest) {
   console.log('API route called');
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     console.log('Processing file:', file.name);
     const buffer = Buffer.from(await file.arrayBuffer());
     let extractedContent = '';
-    let metadata = {
+    const metadata = {
       title: file.name,
       author: '',
       pageCount: 0,
@@ -69,7 +71,6 @@ export async function POST(request: NextRequest) {
         console.log('Processing PDF file');
         try {
           // Use pdf-parse for PDF processing
-          const pdfParse = require('pdf-parse');
           console.log('PDF-parse module loaded');
           
           const pdfData = await pdfParse(buffer);
@@ -109,7 +110,6 @@ export async function POST(request: NextRequest) {
           // Try alternative approach with require
           try {
             console.log('Trying alternative DOCX processing method');
-            const mammoth = require('mammoth');
             const docxResult = await mammoth.extractRawText({ buffer });
             
             extractedContent = docxResult.value || '';

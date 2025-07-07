@@ -1,95 +1,67 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setActiveTab, addNotification } from "@/store/slices/uiSlice";
+import { setCurrentFile, processDocument, clearError } from "@/store/slices/documentSlice";
+import { setCurrentUrl, scrapeUrl, clearScrapedData } from "@/store/slices/scrapingSlice";
+import Notification from "@/components/Notification";
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string>("");
-  const [tab, setTab] = useState<'file' | 'url'>('file');
   const router = useRouter();
-
-  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
-  const [fileError, setFileError] = useState<string>("");
+  
+  // Redux hooks
+  const dispatch = useAppDispatch();
+  const { activeTab } = useAppSelector((state: any) => state.ui);
+  const { currentFile, isProcessing: isProcessingFile, error: fileError, processedDocument } = useAppSelector((state: any) => state.document);
+  const { currentUrl, isScraping, error: scrapingError, scrapedData } = useAppSelector((state: any) => state.scraping);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setFileName(file.name);
-      setFileError("");
-      setIsProcessingFile(true);
-
+      dispatch(setCurrentFile(file));
+      dispatch(clearError());
+      
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/process-document', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to process file');
-        }
-
+        const result = await dispatch(processDocument(file)).unwrap();
+        
         // Store the processed document data
-        localStorage.setItem('processedDocument', JSON.stringify(data));
+        localStorage.setItem('processedDocument', JSON.stringify({ success: true, data: result }));
+        dispatch(addNotification({ type: 'success', message: 'Document processed successfully!' }));
         router.push("/document");
       } catch (error) {
         console.error('Error processing file:', error);
-        setFileError(error instanceof Error ? error.message : 'Failed to process file');
-        setFileName("");
-      } finally {
-        setIsProcessingFile(false);
+        dispatch(addNotification({ type: 'error', message: error as string }));
       }
     }
   };
 
-  const [url, setUrl] = useState<string>("");
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-
   const handleProcessUrl = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
-    if (!url.trim()) {
-      setError("Please enter a valid URL");
+    if (!currentUrl.trim()) {
+      dispatch(addNotification({ type: 'error', message: 'Please enter a valid URL' }));
       return;
     }
 
-    setIsProcessing(true);
-    setError("");
-
     try {
-      const response = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to scrape URL');
-      }
-
-      // Store the scraped data in localStorage or pass it to the next page
-      localStorage.setItem('scrapedData', JSON.stringify(data));
+      const result = await dispatch(scrapeUrl(currentUrl.trim())).unwrap();
+      
+      // Store the scraped data in localStorage
+      localStorage.setItem('scrapedData', JSON.stringify(result));
+      dispatch(addNotification({ type: 'success', message: 'URL scraped successfully!' }));
       router.push("/document");
     } catch (error) {
       console.error('Error processing URL:', error);
-      setError(error instanceof Error ? error.message : 'Failed to process URL');
-    } finally {
-      setIsProcessing(false);
+      dispatch(addNotification({ type: 'error', message: error as string }));
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f7fa] to-[#c3cfe2] flex flex-col items-center py-12 px-2">
+      <Notification />
       {/* Header */}
       <div className="max-w-2xl w-full text-center mb-12">
         <h1 className="text-4xl font-extrabold text-[#7b3aed] mb-4">Smart Document Assistant</h1>
@@ -135,22 +107,22 @@ export default function Home() {
         {/* Tab Switcher */}
         <div className="flex mb-6 border-b border-gray-200">
           <button
-            className={`flex items-center px-4 py-2 font-medium text-sm border-b-2 transition-colors duration-150 ${tab === 'file' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
-            onClick={e => { e.preventDefault(); setTab('file'); }}
+            className={`flex items-center px-4 py-2 font-medium text-sm border-b-2 transition-colors duration-150 ${activeTab === 'file' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'}`}
+            onClick={e => { e.preventDefault(); dispatch(setActiveTab('file')); }}
           >
             <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" /></svg>
             Upload File
           </button>
           <button
-            className={`flex items-center px-4 py-2 font-medium text-sm border-b-2 transition-colors duration-150 ${tab === 'url' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-purple-600'}`}
-            onClick={e => { e.preventDefault(); setTab('url'); }}
+            className={`flex items-center px-4 py-2 font-medium text-sm border-b-2 transition-colors duration-150 ${activeTab === 'url' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-purple-600'}`}
+            onClick={e => { e.preventDefault(); dispatch(setActiveTab('url')); }}
           >
             <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 010 5.656m-3.656-5.656a4 4 0 000 5.656m1.414-1.414a2 2 0 002.828 0l3.536-3.536a2 2 0 10-2.828-2.828l-3.536 3.536a2 2 0 000 2.828z" /></svg>
             From URL
           </button>
         </div>
         {/* File Upload or URL Input */}
-        {tab === 'file' ? (
+        {activeTab === 'file' ? (
           <div
             className={`w-full border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center py-12 cursor-pointer transition-colors ${
               isProcessingFile ? 'border-gray-400 cursor-not-allowed' : 'hover:border-blue-400'
@@ -178,8 +150,8 @@ export default function Home() {
                 <div className="text-xs text-gray-400">PDF, DOCX, TXT up to 10MB</div>
               </>
             )}
-            {fileName && !isProcessingFile && (
-              <div className="mt-2 text-green-600 font-medium text-sm">{fileName}</div>
+            {currentFile?.name && !isProcessingFile && (
+              <div className="mt-2 text-green-600 font-medium text-sm">{currentFile.name}</div>
             )}
             {fileError && (
               <div className="mt-2 text-red-600 text-sm">{fileError}</div>
@@ -191,24 +163,24 @@ export default function Home() {
             <input
               id="url-input"
               type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              value={currentUrl}
+              onChange={(e) => dispatch(setCurrentUrl(e.target.value))}
               placeholder="https://example.com/document"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
             />
-            {error && (
-              <div className="mt-2 text-red-600 text-sm">{error}</div>
+            {scrapingError && (
+              <div className="mt-2 text-red-600 text-sm">{scrapingError}</div>
             )}
             <button 
               onClick={handleProcessUrl} 
-              disabled={isProcessing}
+              disabled={isScraping}
               className={`mt-2 w-full font-semibold py-3 px-4 rounded-lg transition-colors duration-200 text-base ${
-                isProcessing 
+                isScraping 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-purple-600 hover:bg-purple-700 text-white'
               }`}
             >
-              {isProcessing ? 'Processing...' : 'Process URL'}
+              {isScraping ? 'Processing...' : 'Process URL'}
             </button>
           </div>
         )}

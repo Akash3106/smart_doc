@@ -1,15 +1,90 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>("");
   const [tab, setTab] = useState<'file' | 'url'>('file');
+  const router = useRouter();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
+  const [fileError, setFileError] = useState<string>("");
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+      const file = e.target.files[0];
+      setFileName(file.name);
+      setFileError("");
+      setIsProcessingFile(true);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/process-document', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to process file');
+        }
+
+        // Store the processed document data
+        localStorage.setItem('processedDocument', JSON.stringify(data));
+        router.push("/document");
+      } catch (error) {
+        console.error('Error processing file:', error);
+        setFileError(error instanceof Error ? error.message : 'Failed to process file');
+        setFileName("");
+      } finally {
+        setIsProcessingFile(false);
+      }
+    }
+  };
+
+  const [url, setUrl] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
+  const handleProcessUrl = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    
+    if (!url.trim()) {
+      setError("Please enter a valid URL");
+      return;
+    }
+
+    setIsProcessing(true);
+    setError("");
+
+    try {
+      const response = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to scrape URL');
+      }
+
+      // Store the scraped data in localStorage or pass it to the next page
+      localStorage.setItem('scrapedData', JSON.stringify(data));
+      router.push("/document");
+    } catch (error) {
+      console.error('Error processing URL:', error);
+      setError(error instanceof Error ? error.message : 'Failed to process URL');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -77,8 +152,10 @@ export default function Home() {
         {/* File Upload or URL Input */}
         {tab === 'file' ? (
           <div
-            className="w-full border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center py-12 cursor-pointer hover:border-blue-400 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
+            className={`w-full border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center py-12 cursor-pointer transition-colors ${
+              isProcessingFile ? 'border-gray-400 cursor-not-allowed' : 'hover:border-blue-400'
+            }`}
+            onClick={() => !isProcessingFile && fileInputRef.current?.click()}
           >
             <input
               ref={fileInputRef}
@@ -86,12 +163,26 @@ export default function Home() {
               accept=".pdf,.doc,.docx,.txt"
               className="hidden"
               onChange={handleFileChange}
+              disabled={isProcessingFile}
             />
-            <svg className="h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 48 48"><path strokeLinecap="round" strokeLinejoin="round" d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" /></svg>
-            <div className="text-gray-500 text-lg font-medium mb-1">Drop your file here or click to browse</div>
-            <div className="text-xs text-gray-400">PDF, DOCX, TXT up to 10MB</div>
-            {fileName && (
+            {isProcessingFile ? (
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                <div className="text-gray-600 text-lg font-medium mb-1">Processing file...</div>
+                <div className="text-xs text-gray-400">Please wait</div>
+              </div>
+            ) : (
+              <>
+                <svg className="h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 48 48"><path strokeLinecap="round" strokeLinejoin="round" d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" /></svg>
+                <div className="text-gray-500 text-lg font-medium mb-1">Drop your file here or click to browse</div>
+                <div className="text-xs text-gray-400">PDF, DOCX, TXT up to 10MB</div>
+              </>
+            )}
+            {fileName && !isProcessingFile && (
               <div className="mt-2 text-green-600 font-medium text-sm">{fileName}</div>
+            )}
+            {fileError && (
+              <div className="mt-2 text-red-600 text-sm">{fileError}</div>
             )}
           </div>
         ) : (
@@ -100,10 +191,25 @@ export default function Home() {
             <input
               id="url-input"
               type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com/document"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 placeholder-gray-400"
             />
-            <button className="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 text-base">Process URL</button>
+            {error && (
+              <div className="mt-2 text-red-600 text-sm">{error}</div>
+            )}
+            <button 
+              onClick={handleProcessUrl} 
+              disabled={isProcessing}
+              className={`mt-2 w-full font-semibold py-3 px-4 rounded-lg transition-colors duration-200 text-base ${
+                isProcessing 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}
+            >
+              {isProcessing ? 'Processing...' : 'Process URL'}
+            </button>
           </div>
         )}
       </div>

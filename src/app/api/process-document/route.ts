@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let pdfParse: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mammoth: any;
+
+// Initialize modules only when needed
+const getPdfParse = async () => {
+  if (!pdfParse) {
+    pdfParse = (await import('pdf-parse')).default;
+  }
+  return pdfParse;
+};
+
+const getMammoth = async () => {
+  if (!mammoth) {
+    mammoth = (await import('mammoth')).default;
+  }
+  return mammoth;
+};
 
 export async function POST(request: NextRequest) {
   console.log('API route called');
@@ -70,10 +88,11 @@ export async function POST(request: NextRequest) {
       case 'application/pdf':
         console.log('Processing PDF file');
         try {
-          // Use pdf-parse for PDF processing
+          // Use dynamic import for pdf-parse
+          const pdfParseModule = await getPdfParse();
           console.log('PDF-parse module loaded');
           
-          const pdfData = await pdfParse(buffer);
+          const pdfData = await pdfParseModule(buffer);
           console.log('PDF parsed successfully, pages:', pdfData.numpages);
           
           extractedContent = pdfData.text || '';
@@ -95,34 +114,21 @@ export async function POST(request: NextRequest) {
       case 'application/msword':
         console.log('Processing DOCX/DOC file');
         try {
-          // Try dynamic import first
-          const mammothModule = await import('mammoth');
+          // Use dynamic import for mammoth
+          const mammothModule = await getMammoth();
           console.log('Mammoth module imported successfully');
           
-          const docxResult = await mammothModule.default.extractRawText({ buffer });
+          const docxResult = await mammothModule.extractRawText({ buffer });
           extractedContent = docxResult.value || '';
           metadata.wordCount = extractedContent.split(/\s+/).filter(word => word.length > 0).length;
           
           console.log('DOCX processed successfully, content length:', extractedContent.length);
         } catch (docxError) {
           console.error('DOCX processing error:', docxError);
-          
-          // Try alternative approach with require
-          try {
-            console.log('Trying alternative DOCX processing method');
-            const docxResult = await mammoth.extractRawText({ buffer });
-            
-            extractedContent = docxResult.value || '';
-            metadata.wordCount = extractedContent.split(/\s+/).filter(word => word.length > 0).length;
-            
-            console.log('DOCX processed with alternative method');
-          } catch (altError) {
-            console.error('Alternative DOCX processing also failed:', altError);
-            return NextResponse.json(
-              { error: 'Failed to process DOCX file. The file might be corrupted.' },
-              { status: 500 }
-            );
-          }
+          return NextResponse.json(
+            { error: 'Failed to process DOCX file. The file might be corrupted.' },
+            { status: 500 }
+          );
         }
         break;
 

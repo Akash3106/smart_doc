@@ -3,9 +3,17 @@
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { removeNotification } from '@/store/slices/uiSlice';
 
+interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
+  timestamp: number;
+}
+
 export default function Notification() {
   const dispatch = useAppDispatch();
-  const notifications = useAppSelector((state: any) => state.ui.notifications);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const notifications = useAppSelector((state) => (state as any).ui.notifications);
 
   const getNotificationStyle = (type: string) => {
     switch (type) {
@@ -57,7 +65,7 @@ export default function Notification() {
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {notifications.map((notification: any) => (
+      {notifications.map((notification: Notification) => (
         <div
           key={notification.id}
           className={`flex items-center p-4 border rounded-lg shadow-lg max-w-sm ${getNotificationStyle(notification.type)}`}

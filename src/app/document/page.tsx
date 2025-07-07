@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { sendChatMessage, addMessage, setDocumentContent, ChatMessage } from "@/store/slices/chatSlice";
+import { sendChatMessage, addMessage, setDocumentContent } from "@/store/slices/chatSlice";
 import { useRouter } from "next/navigation";
-import { RootState } from "@/store/store";
 
 export default function DocumentPage() {
   const router = useRouter();
@@ -16,10 +15,10 @@ export default function DocumentPage() {
   // Get Redux state
   const dispatch = useAppDispatch();
   const processedDocument = useAppSelector(state => state.document.processedDocument);
-  // @ts-expect-error
-  const activeTab = useAppSelector(state => (state as RootState).ui.activeTab);
-  // @ts-expect-error
-  const scrapedData = useAppSelector(state => (state as RootState).scraping.scrapedData);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activeTab = useAppSelector(state => (state as any).ui.activeTab);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scrapedData = useAppSelector(state => (state as any).scraping.scrapedData);
   const messages = useAppSelector(state => state.chat.messages);
   const isLoading = useAppSelector(state => state.chat.isLoading);
   const error = useAppSelector(state => state.chat.error);
@@ -132,7 +131,7 @@ export default function DocumentPage() {
 
             {/* Chat Messages */}
             <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-              {messages.map((message: ChatMessage) => (
+              {messages.map((message) => (
                 <div key={message.id} className={`flex items-start gap-3 ${message.role === 'user' ? 'justify-end' : ''}`}>
                   {message.role === 'assistant' && (
                     <div className="bg-blue-100 rounded-full p-2 mt-1 border border-blue-200">

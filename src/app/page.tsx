@@ -7,6 +7,7 @@ import { setActiveTab, addNotification } from "@/store/slices/uiSlice";
 import { setCurrentFile, processDocument, clearError } from "@/store/slices/documentSlice";
 import { setCurrentUrl, scrapeUrl } from "@/store/slices/scrapingSlice";
 import Notification from "@/components/Notification";
+// import { RootState } from "@/store/store";
 
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -14,9 +15,11 @@ export default function Home() {
   
   // Redux hooks
   const dispatch = useAppDispatch();
-  const { activeTab } = useAppSelector((state: any) => state.ui);
-  const { currentFile, isProcessing: isProcessingFile, error: fileError } = useAppSelector((state: any) => state.document);
-  const { currentUrl, isScraping, error: scrapingError } = useAppSelector((state: any) => state.scraping);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { activeTab } = useAppSelector(state => (state as any).ui);
+  const { currentFile, isProcessing: isProcessingFile, error: fileError } = useAppSelector(state => state.document);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { currentUrl, isScraping, error: scrapingError } = useAppSelector(state => (state as any).scraping);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {

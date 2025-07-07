@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
     for (const selector of contentSelectors) {
       const element = $(selector);
       if (element.length > 0) {
+        // @ts-expect-error - Cheerio typing issue with element assignment
         contentElement = element;
         break;
       }

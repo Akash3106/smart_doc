@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import documentReducer from './slices/documentSlice';
 import scrapingReducer from './slices/scrapingSlice';
 import uiReducer from './slices/uiSlice';
+import chatReducer from './slices/chatSlice';
 
 export const store = configureStore({
   reducer: {
     document: documentReducer,
     scraping: scrapingReducer,
     ui: uiReducer,
+    chat: chatReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

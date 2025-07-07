@@ -8,8 +8,9 @@ A Next.js application that allows users to upload files or provide URLs to scrap
 
 - **File Upload**: Support for PDF, DOCX, and TXT files
 - **URL Processing**: Scrape blog content from any URL
-- **AI Chat**: Ask questions and get contextual insights from your documents
+- **AI Chat**: Ask questions and get contextual insights from your documents using OpenAI's GPT models
 - **Smart Content Extraction**: Automatically extracts titles, authors, content, and metadata
+- **Conversation History**: Maintains chat history for contextual conversations
 
 ### 📊 Blog Scraping API
 
@@ -25,6 +26,39 @@ The application includes a powerful blog scraping API that extracts:
 - **Links**: All external links for further analysis
 
 ## API Endpoints
+
+### POST `/api/chat`
+
+Chat with OpenAI about document content.
+
+**Request Body:**
+
+```json
+{
+  "prompt": "What are the main topics covered?",
+  "documentContent": "Document content here...",
+  "conversationHistory": [
+    {
+      "role": "user",
+      "content": "Previous question"
+    },
+    {
+      "role": "assistant",
+      "content": "Previous answer"
+    }
+  ]
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "response": "AI response based on document content",
+  "timestamp": "2024-01-01T12:00:00Z"
+}
+```
 
 ### POST `/api/scrape`
 
@@ -64,6 +98,7 @@ Scrapes blog content from a provided URL.
 
 - Node.js 20.18.1 or higher
 - npm or yarn
+- OpenAI API key (for AI chat functionality)
 
 ### Installation
 
@@ -80,13 +115,23 @@ cd blog_knowledge
 npm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+
+Create a `.env.local` file in the root directory and add your OpenAI API key:
+
+```bash
+# OpenAI API Configuration
+# Get your API key from https://platform.openai.com/api-keys
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Usage
 
@@ -102,6 +147,14 @@ Visit `/test-scrape` to test the blog scraping functionality with a user-friendl
    - Enter a blog URL
    - Click "Process URL"
    - The scraped content will be available for AI chat
+4. For file upload:
+   - Upload a PDF, DOCX, or TXT file
+   - The document content will be processed and available for AI chat
+5. Chat with AI:
+   - Navigate to the document page
+   - Ask questions about the content
+   - Use suggested questions or type your own
+   - View conversation history
 
 ## Technical Details
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { sendChatMessage, addMessage, setDocumentContent } from "@/store/slices/chatSlice";
+import { subscribeToPushNotifications, requestPushAuth, setAuthenticated } from "@/store/slices/pushSlice";
 import { useRouter } from "next/navigation";
 
 export default function DocumentPage() {
@@ -11,12 +12,7 @@ export default function DocumentPage() {
   const [documentName, setDocumentName] = useState("Document");
   const [documentType, setDocumentType] = useState<"file" | "url">("file");
   const [inputMessage, setInputMessage] = useState("");
-  const [password, setPassword] = useState("");
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
-  const [showPasswordError, setShowPasswordError] = useState(false);
-
-  // Hardcoded password
-  const HARDCODED_PASSWORD = process.env.NEXT_PUBLIC_HARDCODED_PASSWORD;
+  const [showAuthError, setShowAuthError] = useState(false);
 
   // Get Redux state
   const dispatch = useAppDispatch();
@@ -29,6 +25,10 @@ export default function DocumentPage() {
   const isLoading = useAppSelector(state => state.chat.isLoading);
   const error = useAppSelector(state => state.chat.error);
   const documentContent = useAppSelector(state => state.chat.documentContent);
+  
+  // Push notification state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pushState = useAppSelector(state => (state as any).push);
 
   // Function to truncate long names
   const truncateName = (name: string) => {
@@ -39,25 +39,43 @@ export default function DocumentPage() {
     return name;
   };
 
-  // Password validation function
-  const validatePassword = (inputPassword: string) => {
-    const isValid = inputPassword === HARDCODED_PASSWORD;
-    setIsPasswordValid(isValid);
-    setShowPasswordError(!isValid && inputPassword.length > 0);
-    return isValid;
-  };
-
-  // Handle password input change
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setPassword(value);
-    if (value.length > 0) {
-      validatePassword(value);
-    } else {
-      setIsPasswordValid(false);
-      setShowPasswordError(false);
+  // Push notification authentication functions
+  const handleSubscribeToPush = async () => {
+    try {
+      await dispatch(subscribeToPushNotifications()).unwrap();
+    } catch (error) {
+      console.error('Failed to subscribe to push notifications:', error);
     }
   };
+
+  const handleRequestAuth = async () => {
+    try {
+      setShowAuthError(false);
+      await dispatch(requestPushAuth()).unwrap();
+    } catch (error) {
+      setShowAuthError(true);
+      console.error('Authentication failed:', error);
+    }
+  };
+
+  // Listen for service worker messages
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'AUTH_APPROVED') {
+        dispatch(setAuthenticated(true));
+        setShowAuthError(false);
+      } else if (event.data && event.data.type === 'AUTH_DENIED') {
+        dispatch(setAuthenticated(false));
+        setShowAuthError(true);
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+    
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     // Use Redux state for processed document data
@@ -90,9 +108,9 @@ export default function DocumentPage() {
     e.preventDefault();
     if (!inputMessage.trim() || !documentContent) return;
 
-    // Check password before sending message
-    if (!isPasswordValid) {
-      setShowPasswordError(true);
+    // Check authentication before sending message
+    if (!pushState.isAuthenticated) {
+      setShowAuthError(true);
       return;
     }
 
@@ -220,37 +238,62 @@ export default function DocumentPage() {
 
           {/* Chat Input */}
           <div className="p-6 border-t top-0 border-gray-200 bg-gray-50">
-            {/* Password Input */}
-            {!isPasswordValid && (
+            {/* Push Notification Authentication */}
+            {!pushState.isAuthenticated && (
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-5 5v-5zM4 19h6v-6H4v6zm0-8h6V5H4v6zm8 0h6V5h-6v6zm0 8h6v-6h-6v6z" />
                   </svg>
-                  <span className="text-sm font-medium text-gray-700">Enter Password to Chat</span>
+                  <span className="text-sm font-medium text-gray-700">Mobile Authentication Required</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter password..."
-                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white shadow-sm"
-                  />
-                  {isPasswordValid && (
-                    <div className="text-green-600">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                {showPasswordError && (
-                  <div className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                
+                {!pushState.isSubscribed ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Subscribe to push notifications to authenticate via your mobile device.
+                    </p>
+                    <button
+                      onClick={handleSubscribeToPush}
+                      disabled={pushState.notificationPermission === 'denied'}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg py-3 px-4 font-semibold transition-colors border border-blue-600 shadow-sm"
+                    >
+                      {pushState.notificationPermission === 'denied' 
+                        ? 'Notifications Blocked - Please Enable in Browser Settings'
+                        : 'Subscribe to Push Notifications'
+                      }
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Click the button below to send an authentication request to your mobile device.
+                    </p>
+                    <button
+                      onClick={handleRequestAuth}
+                      disabled={pushState.isRequestingAuth}
+                      className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg py-3 px-4 font-semibold transition-colors border border-green-600 shadow-sm"
+                    >
+                      {pushState.isRequestingAuth ? 'Sending Request...' : 'Request Mobile Authentication'}
+                    </button>
+                  </div>
+                )}
+                
+                {showAuthError && (
+                  <div className="text-red-600 text-sm mt-2 flex items-center gap-1">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Incorrect password
+                    Authentication failed. Please try again.
+                  </div>
+                )}
+                
+                {pushState.error && (
+                  <div className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {pushState.error}
                   </div>
                 )}
               </div>
@@ -261,13 +304,13 @@ export default function DocumentPage() {
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder={isPasswordValid ? "Ask a question about the document..." : "Enter password first..."}
+                placeholder={pushState.isAuthenticated ? "Ask a question about the document..." : "Complete mobile authentication first..."}
                 className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white shadow-sm"
-                disabled={isLoading || !documentContent || !isPasswordValid}
+                disabled={isLoading || !documentContent || !pushState.isAuthenticated}
               />
               <button 
                 type="submit" 
-                disabled={isLoading || !inputMessage.trim() || !documentContent || !isPasswordValid}
+                disabled={isLoading || !inputMessage.trim() || !documentContent || !pushState.isAuthenticated}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg p-3 transition-colors border border-blue-600 shadow-sm"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -299,7 +342,7 @@ export default function DocumentPage() {
             </div>
             <button 
               onClick={() => setInputMessage("Please provide a concise summary and the key takeaways from this document. Focus on the most important points and actionable insights.")}
-              disabled={!isPasswordValid}
+              disabled={!pushState.isAuthenticated}
               className="w-full bg-white/20 hover:bg-white/30 disabled:bg-white/10 disabled:cursor-not-allowed border border-white/30 rounded-lg py-3 font-semibold text-white transition-all duration-200 text-sm shadow-sm"
             >
               Generate Summary & Key Takeaways
@@ -311,28 +354,28 @@ export default function DocumentPage() {
             <div className="flex flex-col gap-2">
               <button 
                 onClick={() => setInputMessage("What are the main topics covered in this document?")}
-                disabled={!isPasswordValid}
+                disabled={!pushState.isAuthenticated}
                 className="text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition text-sm shadow-sm"
               >
                 What are the main topics covered in this document?
               </button>
               <button 
                 onClick={() => setInputMessage("Can you summarize the key points?")}
-                disabled={!isPasswordValid}
+                disabled={!pushState.isAuthenticated}
                 className="text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition text-sm shadow-sm"
               >
                 Can you summarize the key points?
               </button>
               <button 
                 onClick={() => setInputMessage("What are the most important takeaways?")}
-                disabled={!isPasswordValid}
+                disabled={!pushState.isAuthenticated}
                 className="text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition text-sm shadow-sm"
               >
                 What are the most important takeaways?
               </button>
               <button 
                 onClick={() => setInputMessage("Are there any specific recommendations mentioned?")}
-                disabled={!isPasswordValid}
+                disabled={!pushState.isAuthenticated}
                 className="text-left bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-100 hover:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition text-sm shadow-sm"
               >
                 Are there any specific recommendations mentioned?

@@ -3,6 +3,7 @@ import documentReducer from './slices/documentSlice';
 import scrapingReducer from './slices/scrapingSlice';
 import uiReducer from './slices/uiSlice';
 import chatReducer from './slices/chatSlice';
+import pushReducer from './slices/pushSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     scraping: scrapingReducer,
     ui: uiReducer,
     chat: chatReducer,
+    push: pushReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

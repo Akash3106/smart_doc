@@ -143,7 +143,7 @@ export default function DocumentPage() {
       {/* Main Content */}
       <main className="flex flex-1 w-full max-w-6xl mx-auto py-8 gap-8">
         {/* Chat Area */}
-        <section className="flex-1 h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm">
+        <section className="flex-1 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="p-6 border-b border-gray-200">
             <div className="font-bold text-xl text-gray-900 mb-4">AI Assistant</div>
             
@@ -219,7 +219,7 @@ export default function DocumentPage() {
           </div>
 
           {/* Chat Input */}
-          <div className="p-6 border-t border-gray-200 bg-gray-50">
+          <div className="p-6 border-t top-0 border-gray-200 bg-gray-50">
             {/* Password Input */}
             {!isPasswordValid && (
               <div className="mb-4">

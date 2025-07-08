@@ -43,3 +43,53 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Animations */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.animate-fadeInUp.delay-100 { animation-delay: 0.1s; }
+.animate-fadeInUp.delay-200 { animation-delay: 0.2s; }
+.animate-fadeInUp.delay-300 { animation-delay: 0.3s; }
+.animate-fadeInUp.delay-400 { animation-delay: 0.4s; }
+.animate-fadeInUp.delay-500 { animation-delay: 0.5s; }
+
+@keyframes bgFadeIn {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+.animate-bgFadeIn {
+  animation: bgFadeIn 6s ease-in-out infinite alternate;
+  background-size: 200% 200%;
+}
+
+/* Border pulse for file upload */
+@keyframes pulseBorder {
+  0%, 100% { border-color: #3b82f6; }
+  50% { border-color: #7b3aed; }
+}
+.animate-pulseBorder:hover {
+  animation: pulseBorder 1.2s infinite;
+}
+
+/* Hide scrollbar */
+body, html, .min-h-screen {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+body::-webkit-scrollbar, html::-webkit-scrollbar, .min-h-screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* Card hover effect (already in Tailwind, but extra polish) */
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s;
+}
+.card-hover:hover {
+  transform: scale(1.05) translateY(-4px);
+  box-shadow: 0 8px 32px rgba(123, 58, 237, 0.12);
+}

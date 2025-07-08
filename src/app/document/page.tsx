@@ -278,7 +278,9 @@ export default function DocumentPage() {
 
         {/* Sidebar */}
         <aside className="w-full max-w-xs flex flex-col gap-6">
-          <button className="w-full bg-white border-2 border-gray-300 rounded-lg py-3 font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition shadow-sm">
+          <button className="w-full bg-white border-2 border-gray-300 rounded-lg py-3 font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition shadow-sm"
+          onClick={() => router.push("/")}
+          >
             Process New Document
           </button>
           

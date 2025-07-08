@@ -81,7 +81,7 @@ export default function Home() {
             <svg className="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0l-4 4m4-4l4 4M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" /></svg>
           </div>
           <div className="font-bold text-lg mb-1 text-black">File Upload</div>
-          <div className="text-gray-500 text-center text-sm">Support for PDF, DOCX, and TXT files with instant processing</div>
+          <div className="text-gray-500 text-center text-sm">Support for DOCX, and TXT files with instant processing</div>
         </div>
         {/* URL Processing Card */}
         <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 p-6 flex flex-col items-center transform transition duration-500 hover:scale-105 hover:shadow-xl animate-fadeInUp delay-200">
@@ -135,7 +135,7 @@ export default function Home() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.txt"
+              accept=".doc,.docx,.txt"
               className="hidden"
               onChange={handleFileChange}
               disabled={isProcessingFile}
@@ -150,7 +150,7 @@ export default function Home() {
               <>
                 <svg className="h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 48 48"><path strokeLinecap="round" strokeLinejoin="round" d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" /></svg>
                 <div className="text-gray-500 text-lg font-medium mb-1">Drop your file here or click to browse</div>
-                <div className="text-xs text-gray-400">PDF, DOCX, TXT up to 10MB</div>
+                <div className="text-xs text-gray-400">DOCX, TXT up to 10MB</div>
               </>
             )}
             {currentFile?.name && !isProcessingFile && (

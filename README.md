@@ -6,7 +6,7 @@ A Next.js application that allows users to upload files or provide URLs to scrap
 
 ### 🚀 Core Functionality
 
-- **File Upload**: Support for PDF, DOCX, and TXT files
+- **File Upload**: Support for DOCX, and TXT files
 - **URL Processing**: Scrape blog content from any URL
 - **AI Chat**: Ask questions and get contextual insights from your documents using OpenAI's GPT models
 - **Smart Content Extraction**: Automatically extracts titles, authors, content, and metadata
